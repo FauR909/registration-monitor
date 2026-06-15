@@ -32,12 +32,15 @@ public class Worker : BackgroundService
 
                 LogResult(result);
             }
-            catch (Exception)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-
-                throw;
+                _logger.LogError(ex, "Error while checking.");
             }
+
+            await Task.Delay(_checkInterval, stoppingToken);
         }
+
+        _logger.LogInformation("RegistrationMonitor stopped.");
     }
 
     private void LogResult(RegistrationInfo info) 
