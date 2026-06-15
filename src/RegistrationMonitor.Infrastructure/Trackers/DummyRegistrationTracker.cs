@@ -9,6 +9,13 @@ using RegistrationMonitor.Core.Models;
 
 namespace RegistrationMonitor.Infrastructure.Trackers
 {
+    /// <summary>
+    /// Provides a simulated implementation of the <see cref="IRegistrationTracker"/> interface for tracking
+    /// registration status. This implementation simulates a registration system that opens at a predefined time.
+    /// </summary>
+    /// <remarks>This class is intended for testing or demonstration purposes and does not interact with any
+    /// real registration system. The registration status is determined based on a simulated open time, which is set to
+    /// two minutes after the creation of the application instance.</remarks>
     public class DummyRegistrationTracker : IRegistrationTracker
     {
         private readonly ILogger<DummyRegistrationTracker> _logger;
