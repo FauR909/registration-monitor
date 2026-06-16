@@ -13,7 +13,7 @@ namespace RegistrationMonitor.Core.Interfaces
         /// Get last check from db. Anti-spam mechanism
         /// </summary>
         /// <param name="token"></param>
-        Task<StatusCheckRecord> GetLastCheckAsync(CancellationToken token = default);
+        Task<StatusCheckRecord?> GetLastCheckAsync(CancellationToken token = default);
 
         /// <summary>
         /// Saves new check in db
