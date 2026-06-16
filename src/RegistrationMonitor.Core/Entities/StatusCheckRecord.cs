@@ -12,7 +12,9 @@ namespace RegistrationMonitor.Core.Entities
     /// </summary>
     public sealed class StatusCheckRecord
     {
-
+        /// <summary>
+        /// Id of single check record
+        /// </summary>
         public int Id { get; init; }
 
         /// <summary>
