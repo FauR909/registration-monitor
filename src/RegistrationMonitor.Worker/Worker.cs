@@ -3,9 +3,13 @@ using RegistrationMonitor.Core.Entities;
 using RegistrationMonitor.Core.Interfaces;
 using RegistrationMonitor.Core.Models;
 using RegistrationMonitor.Infrastructure.Data;
+using RegistrationMonitor.Core.Services;
 
 namespace RegistrationMonitor.Worker;
 
+/// <summary>
+/// Now worker only responsible for planning. Business-logic is handled by MonitoringOrchestrator.
+/// </summary>
 public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
@@ -28,46 +32,23 @@ public class Worker : BackgroundService
             try
             {
                 await using var scope = _scopeFactory.CreateAsyncScope();
-                var tracker = scope.ServiceProvider.GetRequiredService<IRegistrationTracker>();
 
-                var repository = scope.ServiceProvider.GetRequiredService<IStatusRepository>();
+                var orchestrator = scope.ServiceProvider.GetRequiredService<MonitoringOrchestrator>();
 
-                var result = await tracker.GetCurrentStatusAsync(stoppingToken);
+                var result = await orchestrator.RunCheckAsync(stoppingToken);
 
-                var lastRecord = await repository.GetLastCheckAsync(stoppingToken);
-
-                var statusChanged = lastRecord is null || lastRecord.DetectedStatus != result.Status;
-
-                if (!statusChanged)
+                if (!result.IsSuccess)
                 {
-                    _logger.LogInformation(
-                        "Status has not changed, skip db. Status: {Status}",
-                        result.Status);
+                    _logger.LogError("Check failed. Message: {Message}", result.Message);
                 }
-                else
+                else if (result.WasProcessed)
                 {
-                    var newRecord = new StatusCheckRecord
-                    {
-                        CheckedAt = DateTimeOffset.UtcNow,
-                        DetectedStatus = result.Status,
-                        NotificationSent = false,
-                        SourceMessage = result.SourceMessage,
-                    };
-
-                    await repository.AddCheckAsync(newRecord, stoppingToken);
-
-                    _logger.LogWarning(
-                        "Status changed from {Old} to {New}. Saved to db (Id = {Id})",
-                        lastRecord?.DetectedStatus.ToString() ?? "No data",
-                        result.Status,
-                        newRecord.Id);
-
-                    if (result.Status == RegistrationStatus.Open) 
-                    {
-                        _logger.LogWarning("Registration opened");
-                    }
+                    _logger.LogWarning("Processed: {}", result.Message);
                 }
-
+                else 
+                {
+                    _logger.LogInformation("{Msg}", result.Message);
+                }
                 //LogResult(result);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
