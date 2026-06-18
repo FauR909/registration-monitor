@@ -4,6 +4,8 @@ using RegistrationMonitor.Infrastructure.Repositories;
 using RegistrationMonitor.Core.Interfaces;
 using RegistrationMonitor.Infrastructure.Trackers;
 using RegistrationMonitor.Worker;
+using RegistrationMonitor.Core.Services;
+using RegistrationMonitor.Infrastructure.Notifications;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.VisualBasic;
 
@@ -24,6 +26,18 @@ builder.Services.AddScoped<IStatusRepository, StatusRepository>();
 
 // Dummy tracker instead of real site, while real system is unavailable
 builder.Services.AddScoped<IRegistrationTracker, DummyRegistrationTracker>();
+
+// Notification service
+builder.Services.AddScoped<INotificationService, ConsoleNotificationService>();
+
+// Orchestrator
+builder.Services.AddScoped<MonitoringOrchestrator>();
+
+// Configure shutdown timeout
+builder.Services.Configure<HostOptions>(options => 
+{
+    options.ShutdownTimeout = TimeSpan.FromSeconds(10);
+});
 
 // Main loop
 builder.Services.AddHostedService<Worker>();
