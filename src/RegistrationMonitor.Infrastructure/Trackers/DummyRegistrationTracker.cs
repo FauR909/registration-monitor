@@ -20,7 +20,13 @@ namespace RegistrationMonitor.Infrastructure.Trackers
     {
         private readonly ILogger<DummyRegistrationTracker> _logger;
 
-        private static readonly DateTimeOffset SimulatedOpenTime = DateTimeOffset.UtcNow.AddMinutes(2);
+        private static readonly string MarkerFilePath = Path.Combine(AppContext.BaseDirectory, "dummy_tracker_opened.marker");
+
+        private static readonly DateTimeOffset ProcessStartedAt = DateTimeOffset.UtcNow;
+
+        private static readonly TimeSpan SimulatedDelay = TimeSpan.FromMinutes(2);
+
+        // private static readonly DateTimeOffset SimulatedOpenTime = DateTimeOffset.UtcNow.AddMinutes(2);
 
         public DummyRegistrationTracker(ILogger<DummyRegistrationTracker> logger) 
         {
@@ -30,20 +36,41 @@ namespace RegistrationMonitor.Infrastructure.Trackers
         public Task<RegistrationInfo> GetCurrentStatusAsync(CancellationToken token) 
         {
             var now = DateTimeOffset.UtcNow;
-            var isOpen = now >= SimulatedOpenTime;
+            var isOpen = ResolveIsOpen();
 
             _logger.LogDebug("[DummyTracker] Check simulation. Time: {Now:HH:mm:ss}." + 
                 "Registration opens at: {OpenTime:HH:mm:ss}. Status: {Status}",
-                now, SimulatedOpenTime, isOpen ? "OPEN" : "CLOSED");
+                now, isOpen, isOpen ? "OPEN" : "CLOSED");
 
             var info = new RegistrationInfo(
                 Status: isOpen ? RegistrationStatus.Open : RegistrationStatus.Closed,
                 SourceMessage: isOpen ? 
-                    $"[Simulation] Registration opened at {SimulatedOpenTime:HH:mm:ss} UTC" : 
-                    $"[Simulation] Waiting. Registration will be open at {SimulatedOpenTime:HH:mm:ss} UTC",
-                OpenFrom: isOpen ? SimulatedOpenTime : null );
+                    $"[Simulation] Registration opened at {now:HH:mm:ss} UTC" : 
+                    $"[Simulation] Waiting. Registration will be open at {ProcessStartedAt.Add(SimulatedDelay):HH:mm:ss} UTC",
+                OpenFrom: isOpen ? now : null );
 
             return Task.FromResult(info);
+        }
+
+        /// <summary>
+        /// If marker already exists, status remains Open. Even in new process. Testing retry logic purpose
+        /// </summary>
+        /// <returns></returns>
+        private static bool ResolveIsOpen() 
+        {
+            if (File.Exists(MarkerFilePath))
+            {
+                return true;
+            }
+
+            var isOpenNow = DateTimeOffset.UtcNow >= ProcessStartedAt.Add(SimulatedDelay);
+
+            if (isOpenNow) 
+            {
+                File.WriteAllText(MarkerFilePath, DateTimeOffset.UtcNow.ToString("O"));
+            }
+
+            return isOpenNow;
         }
     }
 }
