@@ -37,7 +37,7 @@ namespace RegistrationMonitor.Infrastructure.Notifications
         {
             var message = BuildMessage(info);
 
-            _logger.LogInformation("Sening Telegram-notification to ChatID: {ChatId}",
+            _logger.LogInformation("Sending Telegram-notification to ChatID: {ChatId}",
                 _options.ChatId);
 
             await _botClient.SendMessage(
