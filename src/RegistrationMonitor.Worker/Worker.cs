@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using RegistrationMonitor.Core.Entities;
 using RegistrationMonitor.Core.Interfaces;
 using RegistrationMonitor.Core.Models;
@@ -14,17 +15,19 @@ public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(30);
+    private readonly MonitoringOptions _options;
+    //private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(30);
 
-    public Worker(ILogger<Worker> logger, IServiceScopeFactory scopeFactory)
+    public Worker(ILogger<Worker> logger, IServiceScopeFactory scopeFactory, IOptions<MonitoringOptions> options)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _options = options.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("RegistrationMonitor started. Interval between checks: {Interval} sec.", _checkInterval.TotalSeconds);
+        _logger.LogInformation("RegistrationMonitor started. Interval between checks: {Interval} sec.", _options.CheckIntervalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -56,7 +59,7 @@ public class Worker : BackgroundService
                 _logger.LogError(ex, "Error while checking.");
             }
 
-            await Task.Delay(_checkInterval, stoppingToken);
+            await Task.Delay(_options.CheckInterval, stoppingToken);
         }
 
         _logger.LogInformation("RegistrationMonitor stopped.");

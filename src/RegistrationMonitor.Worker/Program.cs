@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Telegram.Bot;
 using RegistrationMonitor.Infrastructure.Data;
 using RegistrationMonitor.Infrastructure.Repositories;
 using RegistrationMonitor.Core.Interfaces;
@@ -8,8 +9,37 @@ using RegistrationMonitor.Core.Services;
 using RegistrationMonitor.Infrastructure.Notifications;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.VisualBasic;
+using RegistrationMonitor.Core.Models;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+// Configuration
+builder.Services.Configure<TelegramOptions>(
+    builder.Configuration.GetSection(TelegramOptions.SectionName));
+
+builder.Services.Configure<MonitoringOptions>(
+    builder.Configuration.GetSection(MonitoringOptions.SectionName));
+
+var telegramOptions = builder.Configuration
+    .GetSection(TelegramOptions.SectionName)
+    .Get<TelegramOptions>() ?? new TelegramOptions();
+
+if (!telegramOptions.IsConfigured) 
+{
+    var isDevelopment = builder.Environment.IsDevelopment();
+
+    if (isDevelopment)
+    {
+        Console.WriteLine(
+            "WARNING: Telegram is not configured. " +
+            "Using ConsoleNotificationService instead");
+    }
+    else 
+    {
+        throw new InvalidOperationException(
+            "Configure ChatID and BotToken");
+    }
+}
 
 // Database
 builder.Services.AddDbContextFactory<AppDbContext>(options => 
@@ -27,8 +57,19 @@ builder.Services.AddScoped<IStatusRepository, StatusRepository>();
 // Dummy tracker instead of real site, while real system is unavailable
 builder.Services.AddScoped<IRegistrationTracker, DummyRegistrationTracker>();
 
-// Notification service
-builder.Services.AddScoped<INotificationService, ConsoleNotificationService>();
+// Telegram client notification service
+if (telegramOptions.IsConfigured)
+{
+    builder.Services.AddSingleton<ITelegramBotClient>(
+        new TelegramBotClient(telegramOptions.BotToken));
+
+    builder.Services.AddScoped<INotificationService, TelegramNotificationService>();
+}
+else 
+{
+    // Fallback on Console if Telegram failed (Development only)
+    builder.Services.AddScoped<INotificationService, ConsoleNotificationService>();
+}
 
 // Orchestrator
 builder.Services.AddScoped<MonitoringOrchestrator>();
