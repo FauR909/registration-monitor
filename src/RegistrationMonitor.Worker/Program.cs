@@ -10,6 +10,7 @@ using RegistrationMonitor.Infrastructure.Notifications;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.VisualBasic;
 using RegistrationMonitor.Core.Models;
+using RegistrationMonitor.Infrastructure;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -48,7 +49,10 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
         .GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("'DefaultConnection' not found");
 
-    options.UseSqlite(connectionString);
+    var fileName = connectionString.Replace("Data Source=", string.Empty).Trim();
+    var dbPath = Path.Combine(AppPaths.DataDirectory, fileName);
+
+    options.UseSqlite($"Data Source={dbPath}");
 });
 
 // Repository

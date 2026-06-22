@@ -496,3 +496,9 @@ appsettings.Development.json
 
 # JB Rider
 .idea/
+
+# Docker secrets
+.env
+
+# Docker volume
+data/

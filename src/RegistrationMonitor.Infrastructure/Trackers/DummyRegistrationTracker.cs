@@ -20,7 +20,7 @@ namespace RegistrationMonitor.Infrastructure.Trackers
     {
         private readonly ILogger<DummyRegistrationTracker> _logger;
 
-        private static readonly string MarkerFilePath = Path.Combine(AppContext.BaseDirectory, "dummy_tracker_opened.marker");
+        private static readonly string MarkerFilePath = Path.Combine(AppPaths.DataDirectory, "dummy_tracker_opened.marker");
 
         private static readonly DateTimeOffset ProcessStartedAt = DateTimeOffset.UtcNow;
 
