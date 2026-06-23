@@ -1,0 +1,22 @@
+services:
+  registration-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: registration-monitor
+    restart: unless-stopped
+
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+      - Telegram__BotToken=${TELEGRAM_BOT_TOKEN}
+      - Telegram__ChatId=${TELEGRAM_CHAT_ID}
+      - MonitoringOptions__CheckIntervalSeconds=${CHECK_INTERVAL_SECONDS:-30}
+
+    volumes:
+      - ./data:/app/data
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
