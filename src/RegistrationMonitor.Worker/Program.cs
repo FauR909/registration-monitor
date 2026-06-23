@@ -1,16 +1,17 @@
 using Microsoft.EntityFrameworkCore;
-using Telegram.Bot;
-using RegistrationMonitor.Infrastructure.Data;
-using RegistrationMonitor.Infrastructure.Repositories;
-using RegistrationMonitor.Core.Interfaces;
-using RegistrationMonitor.Infrastructure.Trackers;
-using RegistrationMonitor.Worker;
-using RegistrationMonitor.Core.Services;
-using RegistrationMonitor.Infrastructure.Notifications;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.VisualBasic;
+using RegistrationMonitor.Core.Interfaces;
 using RegistrationMonitor.Core.Models;
+using RegistrationMonitor.Core.Services;
 using RegistrationMonitor.Infrastructure;
+using RegistrationMonitor.Infrastructure.Data;
+using RegistrationMonitor.Infrastructure.Notifications;
+using RegistrationMonitor.Infrastructure.Repositories;
+using RegistrationMonitor.Infrastructure.Telegram;
+using RegistrationMonitor.Infrastructure.Trackers;
+using RegistrationMonitor.Worker;
+using Telegram.Bot;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -61,6 +62,9 @@ builder.Services.AddScoped<IStatusRepository, StatusRepository>();
 // Dummy tracker instead of real site, while real system is unavailable
 builder.Services.AddScoped<IRegistrationTracker, DummyRegistrationTracker>();
 
+// Subscribers repository
+builder.Services.AddScoped<ISubscriberRepository, SubscriberRepository>();
+
 // Telegram client notification service
 if (telegramOptions.IsConfigured)
 {
@@ -68,6 +72,8 @@ if (telegramOptions.IsConfigured)
         new TelegramBotClient(telegramOptions.BotToken));
 
     builder.Services.AddScoped<INotificationService, TelegramNotificationService>();
+
+    builder.Services.AddHostedService<TelegramSubscriptionListener>();
 }
 else 
 {
