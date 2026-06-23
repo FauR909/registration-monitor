@@ -13,12 +13,8 @@ namespace RegistrationMonitor.Core.Models
 
         public string BotToken { get; init; } = string.Empty;
 
-        public string ChatId { get; init; } = string.Empty;
-
-
-        public bool IsConfigured => 
-            !string.IsNullOrWhiteSpace(BotToken) &&
-            !string.IsNullOrWhiteSpace(ChatId);
+        public bool IsConfigured =>
+            !string.IsNullOrWhiteSpace(BotToken);
     }
 
     public sealed class MonitoringOptions 
