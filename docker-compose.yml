@@ -9,7 +9,6 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Production
       - Telegram__BotToken=${TELEGRAM_BOT_TOKEN}
-      - Telegram__ChatId=${TELEGRAM_CHAT_ID}
       - MonitoringOptions__CheckIntervalSeconds=${CHECK_INTERVAL_SECONDS:-30}
 
     volumes:
