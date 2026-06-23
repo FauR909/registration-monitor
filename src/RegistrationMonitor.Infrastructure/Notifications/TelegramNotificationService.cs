@@ -11,6 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 using Telegram.Bot.Types;
 using Microsoft.EntityFrameworkCore.Storage.Json;
 using RegistrationMonitor.Core.Extensions;
+using Telegram.Bot.Exceptions;
 
 namespace RegistrationMonitor.Infrastructure.Notifications
 {
@@ -20,33 +21,60 @@ namespace RegistrationMonitor.Infrastructure.Notifications
     public sealed class TelegramNotificationService : INotificationService
     {
         private readonly ILogger<TelegramNotificationService> _logger;
-        private readonly TelegramOptions _options;
         private readonly ITelegramBotClient _botClient;
+        private readonly ISubscriberRepository _subscriberRepository;
 
         public TelegramNotificationService(
             ITelegramBotClient botClient,
-            IOptions<TelegramOptions> options,
+            ISubscriberRepository subscriberRepository,
             ILogger<TelegramNotificationService> logger)
         {
             _logger = logger;
-            _options = options.Value;
+            _subscriberRepository = subscriberRepository;
             _botClient = botClient;
         }
 
         public async Task SendRegistrationOpenedAsync(RegistrationInfo info, CancellationToken token = default) 
         {
+            var subscribers = await _subscriberRepository.GetActiveSubscribersAsync(token);
+
+            if (subscribers.Count == 0) 
+            {
+                _logger.LogWarning("There is no active subscribers. Notification not sent");
+                throw new InvalidOperationException("No active subscribers to notify");
+            }
+
             var message = BuildMessage(info);
+            var successCount = 0;
 
-            _logger.LogInformation("Sending Telegram-notification to ChatID: {ChatId}",
-                _options.ChatId);
+            foreach (var subscriber in subscribers) 
+            {
+                try
+                {
+                    await _botClient.SendMessage(
+                        subscriber.ChatId, message, parseMode: ParseMode.Html, cancellationToken: token);
+                    successCount++;
 
-            await _botClient.SendMessage(
-                chatId: _options.ChatId,
-                text: message,
-                parseMode: ParseMode.Html,
-                cancellationToken: token);
+                    await Task.Delay(50, token);
+                }
+                catch (ApiRequestException ex) when (ex.ErrorCode == 403)
+                {
+                    _logger.LogWarning("Subscriber blocked bot. Deactivated.");
+                    await _subscriberRepository.DeactivateAsync(subscriber.ChatId, token);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send notification to {ChatId}", subscriber.ChatId);
+                }
+            }
 
-            _logger.LogInformation("Notification sent successfully");
+            if (successCount == 0) 
+            {
+                throw new InvalidOperationException("Failed to notify any subscriber.");
+            }
+
+            _logger.LogInformation("Notification sent to {Success}/{Total} subscribers.",
+                successCount, subscribers.Count);
         }
 
         /// <summary>
