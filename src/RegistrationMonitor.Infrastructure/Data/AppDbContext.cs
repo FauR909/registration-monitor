@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,8 @@ namespace RegistrationMonitor.Infrastructure.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<StatusCheckRecord> StatusChecks => Set<StatusCheckRecord>();
+
+        public DbSet<Subscriber> Subscribers => Set<Subscriber>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,6 +38,23 @@ namespace RegistrationMonitor.Infrastructure.Data
 
                 entity.ToTable("StatusChecks");
 
+            });
+
+            modelBuilder.Entity<Subscriber>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+
+                entity.Property(s => s.ChatId).IsRequired();
+
+                entity.Property(s => s.SubscribedAt).IsRequired().HasConversion<string>();
+
+                entity.Property(s => s.IsActive).IsRequired();
+
+                entity.Property(s => s.Username).HasMaxLength(100);
+
+                entity.HasIndex(s => s.ChatId).IsUnique();
+
+                entity.ToTable("Subscribers");
             });
         }
     }
